@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Echoo — Join the Waitlist</title>
+    <meta name="description" content="Be the first to experience Echoo — the premium entertainment discovery platform. Join the waitlist and get notified when we launch." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+      /* ── Design Tokens ── */
+      :root {
+        color-scheme: dark;
+        --ink: #f8f5ef;
+        --muted: #aaa29a;
+        --peach: #f7d5b2;
+        --gold: #e7c98e;
+        --gold-glow: rgba(231, 201, 142, 0.4);
+        --black: #050505;
+        --panel: #131313;
+        --glass: rgba(30, 30, 29, 0.72);
+        --line: rgba(248, 245, 239, 0.12);
+        --line-strong: rgba(248, 245, 239, 0.2);
+        --soft: rgba(248, 245, 239, 0.72);
+        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
+      /* ── Reset ── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      html, body {
+        min-height: 100%;
+        overflow-x: hidden;
+        background: #000;
+        color: var(--ink);
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      button, input { font: inherit; }
+      button { cursor: pointer; }
+
+      /* ── Ambient Background ── */
+      .bg-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .bg-layer::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse 80% 60% at 50% 0%, rgba(247, 213, 178, 0.07) 0%, transparent 60%),
+          radial-gradient(ellipse 60% 50% at 20% 80%, rgba(140, 100, 180, 0.05) 0%, transparent 60%),
+          radial-gradient(ellipse 50% 40% at 80% 60%, rgba(231, 201, 142, 0.04) 0%, transparent 60%),
+          linear-gradient(145deg, #0a0a0a 0%, #030303 50%, #050505 100%);
+      }
+
+      /* Floating Ambient Orbs */
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0;
+        animation: orbFloat 12s ease-in-out infinite;
+      }
+
+      .orb--peach {
+        width: 340px;
+        height: 340px;
+        background: radial-gradient(circle, rgba(247, 213, 178, 0.18), transparent 70%);
+        top: -10%;
+        left: 50%;
+        transform: translateX(-50%);
+        animation-delay: 0s;
+      }
+
+      .orb--purple {
+        width: 280px;
+        height: 280px;
+        background: radial-gradient(circle, rgba(140, 100, 200, 0.12), transparent 70%);
+        bottom: 10%;
+        right: -5%;
+        animation-delay: -4s;
+      }
+
+      .orb--gold {
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, var(--gold-glow), transparent 70%);
+        bottom: 30%;
+        left: -5%;
+        animation-delay: -8s;
+      }
+
+      @keyframes orbFloat {
+        0%, 100% { opacity: 0.4; transform: translate(0, 0) scale(1); }
+        33% { opacity: 0.7; transform: translate(20px, -30px) scale(1.1); }
+        66% { opacity: 0.5; transform: translate(-15px, 15px) scale(0.95); }
+      }
+
+      /* Noise texture overlay */
+      .noise {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        opacity: 0.025;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        background-repeat: repeat;
+        background-size: 128px 128px;
+      }
+
+      /* ── Main Content ── */
+      .waitlist {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 40px 24px;
+        max-width: 560px;
+        width: 100%;
+      }
+
+      /* ── Floating Logo ── */
+      .logo-container {
+        position: relative;
+        margin-bottom: 40px;
+      }
+
+      .logo-glow {
+        position: absolute;
+        inset: -30%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(247, 213, 178, 0.12), rgba(140, 100, 200, 0.06) 50%, transparent 70%);
+        filter: blur(30px);
+        animation: glowPulse 4s ease-in-out infinite;
+        pointer-events: none;
+      }
+
+      @keyframes glowPulse {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.08); }
+      }
+
+      .logo-float {
+        width: 140px;
+        height: auto;
+        position: relative;
+        animation: logoFloat 6s ease-in-out infinite;
+        filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+      }
+
+      @keyframes logoFloat {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        25% { transform: translateY(-12px) rotate(1deg); }
+        50% { transform: translateY(-6px) rotate(0deg); }
+        75% { transform: translateY(-14px) rotate(-1deg); }
+      }
+
+      /* ── Wordmark ── */
+      .wordmark {
+        width: 160px;
+        height: auto;
+        margin-bottom: 12px;
+        filter: brightness(1.15);
+        opacity: 0;
+        animation: fadeUp 0.8s ease-out 0.2s forwards;
+      }
+
+      /* ── Typography ── */
+      .waitlist-tagline {
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        margin-bottom: 36px;
+        opacity: 0;
+        animation: fadeUp 0.8s ease-out 0.4s forwards;
+      }
+
+      .waitlist-headline {
+        font-size: clamp(32px, 7vw, 52px);
+        font-weight: 800;
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+        margin-bottom: 18px;
+        opacity: 0;
+        animation: fadeUp 0.8s ease-out 0.6s forwards;
+      }
+
+      .waitlist-headline .accent {
+        background: linear-gradient(135deg, var(--peach) 0%, var(--gold) 50%, #c9a0dc 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .waitlist-sub {
+        max-width: 400px;
+        color: var(--muted);
+        font-size: clamp(15px, 3.8vw, 18px);
+        font-weight: 420;
+        line-height: 1.5;
+        margin-bottom: 42px;
+        opacity: 0;
+        animation: fadeUp 0.8s ease-out 0.8s forwards;
+      }
+
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* ── Email Form ── */
+      .form-wrapper {
+        width: 100%;
+        max-width: 440px;
+        opacity: 0;
+        animation: fadeUp 0.8s ease-out 1s forwards;
+      }
+
+      .email-form {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        padding: 6px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(42, 42, 41, 0.65), rgba(22, 22, 21, 0.55));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          0 20px 60px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .email-form:focus-within {
+        border-color: rgba(247, 213, 178, 0.35);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          0 0 0 4px rgba(247, 213, 178, 0.06),
+          0 20px 60px rgba(0, 0, 0, 0.35);
+      }
+
+      .email-form input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 450;
+        padding: 14px 20px;
+        letter-spacing: 0.01em;
+      }
+
+      .email-form input::placeholder {
+        color: rgba(248, 245, 239, 0.38);
+        font-weight: 400;
+      }
+
+      .submit-btn {
+        flex-shrink: 0;
+        height: 48px;
+        padding: 0 28px;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--peach), var(--gold));
+        color: #111;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .submit-btn:hover {
+        transform: scale(1.03);
+        box-shadow: 0 6px 24px rgba(231, 201, 142, 0.3);
+      }
+
+      .submit-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* Button shimmer effect */
+      .submit-btn::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s ease;
+      }
+
+      .submit-btn:hover::after {
+        left: 100%;
+      }
+
+      /* ── Success State ── */
+      .form-success {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 16px 24px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(42, 42, 41, 0.65), rgba(22, 22, 21, 0.55));
+        border: 1px solid rgba(231, 201, 142, 0.25);
+        backdrop-filter: blur(24px);
+        animation: successPop 0.5s ease-out forwards;
+      }
+
+      .form-success.show {
+        display: flex;
+      }
+
+      @keyframes successPop {
+        0% { opacity: 0; transform: scale(0.9); }
+        50% { transform: scale(1.03); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+
+      .success-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--peach), var(--gold));
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+      }
+
+      .success-icon svg {
+        width: 14px;
+        height: 14px;
+        stroke: #111;
+        stroke-width: 3;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .success-text {
+        color: var(--peach);
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      /* ── Helper Text ── */
+      .helper {
+        margin-top: 18px;
+        color: rgba(170, 162, 154, 0.6);
+        font-size: 13px;
+        font-weight: 400;
+        letter-spacing: 0.01em;
+      }
+
+      .helper svg {
+        width: 13px;
+        height: 13px;
+        vertical-align: -2px;
+        margin-right: 4px;
+        stroke: currentColor;
+        stroke-width: 2;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* ── Footer Features ── */
+      .features {
+        display: flex;
+        gap: 32px;
+        margin-top: 56px;
+        opacity: 0;
+        animation: fadeUp 0.8s ease-out 1.2s forwards;
+      }
+
+      .feature {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .feature-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        display: grid;
+        place-items: center;
+        transition: background 0.3s ease, border-color 0.3s ease;
+      }
+
+      .feature:hover .feature-icon {
+        background: rgba(247, 213, 178, 0.06);
+        border-color: rgba(247, 213, 178, 0.2);
+      }
+
+      .feature-icon svg {
+        width: 20px;
+        height: 20px;
+        stroke: var(--peach);
+        stroke-width: 1.8;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .feature-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted);
+        letter-spacing: 0.02em;
+      }
+
+      /* ── Particle Canvas ── */
+      #particles {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      /* ── Footer ── */
+      .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 2;
+        text-align: center;
+        padding: 20px 24px;
+        color: rgba(170, 162, 154, 0.35);
+        font-size: 12px;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 480px) {
+        .waitlist {
+          padding: 32px 20px;
+        }
+
+        .logo-float {
+          width: 110px;
+        }
+
+        .logo-container {
+          margin-bottom: 32px;
+        }
+
+        .wordmark {
+          width: 130px;
+        }
+
+        .waitlist-sub {
+          margin-bottom: 32px;
+        }
+
+        .email-form {
+          flex-direction: column;
+          border-radius: 20px;
+          padding: 8px;
+          gap: 6px;
+        }
+
+        .email-form input {
+          width: 100%;
+          text-align: center;
+          padding: 14px 16px;
+        }
+
+        .submit-btn {
+          width: 100%;
+          height: 50px;
+          border-radius: 14px;
+          font-size: 15px;
+        }
+
+        .features {
+          gap: 24px;
+          margin-top: 44px;
+        }
+
+        .feature-icon {
+          width: 40px;
+          height: 40px;
+        }
+
+        .feature-label {
+          font-size: 11px;
+        }
+
+        .footer {
+          padding: 16px 20px;
+        }
+      }
+
+      @media (min-width: 768px) {
+        .logo-float {
+          width: 170px;
+        }
+
+        .logo-container {
+          margin-bottom: 48px;
+        }
+
+        .wordmark {
+          width: 190px;
+          margin-bottom: 14px;
+        }
+
+        .waitlist-headline {
+          font-size: 52px;
+        }
+
+        .email-form input {
+          font-size: 16px;
+          padding: 16px 24px;
+        }
+
+        .submit-btn {
+          height: 52px;
+          padding: 0 36px;
+          font-size: 15px;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .orb--peach { width: 500px; height: 500px; }
+        .orb--purple { width: 400px; height: 400px; }
+        .orb--gold { width: 300px; height: 300px; }
+      }
+
+      /* ── Loading Spinner on Button ── */
+      .submit-btn .spinner {
+        display: none;
+        width: 18px;
+        height: 18px;
+        border: 2.5px solid rgba(17, 17, 17, 0.3);
+        border-top-color: #111;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+
+      .submit-btn.loading .btn-text { display: none; }
+      .submit-btn.loading .spinner { display: inline-block; }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Background layers -->
+    <div class="bg-layer">
+      <div class="orb orb--peach"></div>
+      <div class="orb orb--purple"></div>
+      <div class="orb orb--gold"></div>
+    </div>
+    <div class="noise"></div>
+    <canvas id="particles"></canvas>
+
+    <!-- Main content -->
+    <main class="waitlist" id="waitlist">
+      <!-- Floating Logo -->
+      <div class="logo-container">
+        <div class="logo-glow"></div>
+        <img
+          class="logo-float"
+          src="assets/landing-page-logo-3d.png"
+          alt="Echoo Logo"
+          draggable="false"
+        />
+      </div>
+
+      <!-- Wordmark -->
+      <img
+        class="wordmark"
+        src="assets/echoo-wordmark.png"
+        alt="echoo"
+        draggable="false"
+      />
+
+      <!-- Tagline -->
+      <p class="waitlist-tagline">Entertainment Discovery</p>
+
+      <!-- Headline -->
+      <h1 class="waitlist-headline">
+        Something <span class="accent">Amazing</span> Is Coming
+      </h1>
+
+      <!-- Description -->
+      <p class="waitlist-sub">
+        The future of nightlife, dining, events & entertainment — all in one place.
+        Be the first to hear the city.
+      </p>
+
+      <!-- Email Form -->
+      <div class="form-wrapper" id="form-wrapper">
+        <form class="email-form" id="email-form" autocomplete="off">
+          <input
+            type="email"
+            id="waitlist-email"
+            name="email"
+            placeholder="Enter your email address"
+            required
+            aria-label="Email address for waitlist"
+          />
+          <button type="submit" class="submit-btn" id="submit-btn">
+            <span class="btn-text">Join Waitlist</span>
+            <span class="spinner"></span>
+          </button>
+        </form>
+
+        <!-- Success state (hidden by default) -->
+        <div class="form-success" id="form-success">
+          <span class="success-icon">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+          </span>
+          <span class="success-text">You're on the list! We'll be in touch.</span>
+        </div>
+
+        <p class="helper">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          No spam, ever. Unsubscribe anytime.
+        </p>
+      </div>
+
+      <!-- Feature Icons -->
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <span class="feature-label">Nightlife</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+          </div>
+          <span class="feature-label">Dining</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <span class="feature-label">Events</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+          </div>
+          <span class="feature-label">Films</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      &copy; 2026 Echoo. All rights reserved.
+    </footer>
+
+    <script>
+      /* ── Particle System ── */
+      (function () {
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let w, h;
+        const PARTICLE_COUNT = 45;
+
+        function resize() {
+          w = canvas.width = window.innerWidth;
+          h = canvas.height = window.innerHeight;
+        }
+
+        function createParticle() {
+          return {
+            x: Math.random() * w,
+            y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            radius: Math.random() * 1.5 + 0.5,
+            opacity: Math.random() * 0.3 + 0.05,
+            golden: Math.random() > 0.6,
+          };
+        }
+
+        function init() {
+          resize();
+          particles = [];
+          for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push(createParticle());
+          }
+        }
+
+        function draw() {
+          ctx.clearRect(0, 0, w, h);
+          for (const p of particles) {
+            p.x += p.vx;
+            p.y += p.vy;
+
+            if (p.x < 0) p.x = w;
+            if (p.x > w) p.x = 0;
+            if (p.y < 0) p.y = h;
+            if (p.y > h) p.y = 0;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fillStyle = p.golden
+              ? `rgba(231, 201, 142, ${p.opacity})`
+              : `rgba(248, 245, 239, ${p.opacity * 0.6})`;
+            ctx.fill();
+          }
+          requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        init();
+        draw();
+      })();
+
+      /* ── Supabase Client ── */
+      const SUPABASE_URL = 'https://dlezregdjpdqmooubwvl.supabase.co';
+      const SUPABASE_ANON_KEY = 'sb_publishable_4FeunYH-ItDm68Sjg93c_w_s8yMizxH';
+      const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      /* ── Form Handling ── */
+      const form = document.getElementById('email-form');
+      const btn = document.getElementById('submit-btn');
+      const successEl = document.getElementById('form-success');
+      const helperEl = document.querySelector('.helper');
+
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const emailInput = document.getElementById('waitlist-email');
+        const email = emailInput.value.trim().toLowerCase();
+        if (!email) return;
+
+        // Show loading
+        btn.classList.add('loading');
+        btn.disabled = true;
+
+        // Reset any previous error styling
+        helperEl.style.color = '';
+
+        try {
+          // Insert into Supabase waitlist_signups table
+          const { data, error } = await supabaseClient
+            .from('waitlist_signups')
+            .insert([{ email, source: 'waitlist_page' }]);
+
+          if (error) {
+            // Handle duplicate email (unique constraint violation)
+            if (error.code === '23505') {
+              // Email already registered — still show success
+              form.style.display = 'none';
+              successEl.querySelector('.success-text').textContent =
+                "You're already on the list! We'll notify you at launch.";
+              successEl.classList.add('show');
+              console.log('Waitlist: email already registered —', email);
+              return;
+            }
+            throw error;
+          }
+
+          // Success — hide form, show confirmation
+          form.style.display = 'none';
+          successEl.classList.add('show');
+          console.log('Waitlist signup saved to database:', email);
+
+          // Also save locally as backup
+          try {
+            const waitlist = JSON.parse(localStorage.getItem('echoo_waitlist') || '[]');
+            waitlist.push({ email, timestamp: new Date().toISOString() });
+            localStorage.setItem('echoo_waitlist', JSON.stringify(waitlist));
+          } catch (_) { /* localStorage not critical */ }
+
+        } catch (err) {
+          console.error('Waitlist signup error:', err);
+          // Show error inline
+          btn.classList.remove('loading');
+          btn.disabled = false;
+          helperEl.textContent = 'Something went wrong. Please try again.';
+          helperEl.style.color = '#e88';
+        }
+      });
+    </script>
+  </body>
+</html>
